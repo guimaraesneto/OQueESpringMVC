@@ -191,4 +191,104 @@ Após o cabeçalho, com a tag <mvc:annotation-driven />, habilitamos o uso de an
 
 Por fim, na tag <bean>, configuramos a classe InternalResourceViewResolver. Essa classe representa um recurso interno do framework responsável por localizar o elemento mais indicado para “resolver”, ou melhor, para construir a view a ser apresentada para o usuário. Para isso, note que passamos para ela duas configurações: o local onde devem estar os arquivos que representam a nossa view - neste caso, a pasta /WEB-INF/views/ - e o sufixo desses arquivos - neste caso, .jsp. Por debaixo dos panos, o Spring MVC utilizará esse recurso na camada de visão para obter o arquivo JSP mais adequado.
   
+# 3. Spring MVC na prática
+
+Com o framework configurado, analisaremos um projeto exemplo para aprender como é feito o desenvolvimento de uma aplicação com Spring MVC. Nesta aula analisaremos as classes das camadas Model e Controller.
+
+Análise dos fontes
+Para começar a análise dos fontes do projeto exemplo, vejamos o código da classe que representa o domínio da nossa aplicação, a classe Carro.
+
+```java
+public class Carro {
   
+   private String modelo;
+   private String marca;
+   private int ano;
+  
+   public Carro() {
+   }
+  
+   public Carro(String modelo, String marca, int ano) {
+       this.modelo = modelo;
+       this.marca = marca;
+       this.ano = ano;
+   }
+  
+   //getters e setters omitidos
+  
+}
+```
+
+Nele, definimos três atributos, representando o modelo, a marca e o ano do carro, e programamos os getters e setters de cada um. Além disso, também podemos notar dois construtores. Aqui, é válido destacar que o construtor padrão é requisitado pelo Spring e pelo Spring MVC. Portanto, caso você crie algum construtor com parâmetros, lembre-se de programar o construtor padrão.
+
+Vejamos agora a classe CarroDao. Como podemos notar, começamos definindo como atributo uma lista de carros. No construtor, inicializamos essa lista, e para isso, chamamos o método privado criarCarros(). Nesse método, por sua vez, simplesmente adicionamos alguns carros à lista. Por fim, temos o método getCarros(), que apenas retorna a lista de carros cadastrados.
+
+```java
+@Repository
+public class CarroDao {
+  
+   private static List<Carro> carros;
+  
+   public CarroDao() {
+       criarCarros();
+   }
+  
+   private void criarCarros() {
+       if (carros == null) {
+           carros = new ArrayList<Carro>();
+  
+           carros.add(new Carro("Focus", "Ford", 2016));
+           carros.add(new Carro("Linea", "Fiat", 2014));
+           carros.add(new Carro("Jetta", "Volkswagen", 2015));
+           carros.add(new Carro("Cruze", "Chevrolet", 2017));
+       }
+   }
+  
+   public List<Carro> getCarros() {
+       return carros;
+   }
+  
+}
+```
+Note que nosso DAO está bastante simples. Optamos por esse caminho para manter o foco no que realmente importa: o aprendizado do Spring MVC. No caso dessa classe, o ponto mais importante pode ser verificado sobre classe. Observe a anotação @Repository. Com ela, informamos ao Spring que essa classe é um bean relacionado à camada de acesso dados e que, a partir de agora, ele deve gerenciar o ciclo de vida desse bean.
+
+Para finalizar nossa análise do código Java, vejamos a classe CarroController. Aqui, saiba que é uma prática adotada pelos programadores adicionar como sufixo no nome da classe o termo Controller. Isso, no entanto, não é obrigatório. Para que o Spring MVC saiba que essa classe é um controller, precisamos anotá-la com @Controller, como apresentado abaixo:
+
+```java
+@Controller
+@RequestMapping("carros")
+public class CarroController {
+  
+   @Autowired
+   private CarroDao dao;
+  
+   @RequestMapping(value = "/listar", method = RequestMethod.GET)
+   public ModelAndView listarCarros(ModelMap model) {
+       model.addAttribute("carros", dao.getCarros());
+       return new ModelAndView("/carro/list", model);
+   }
+  
+}
+```
+Em seguida, observe a anotação @RequestMapping. Com ela, determinamos o caminho que deve ser informado na URL para que esse controller seja identificado. Em nosso exemplo, o endereço deve ser: localhost:8080/spring-mvc/carros/.
+
+Dentro do controller, como precisamos nos comunicar com o Model, declaramos um atributo do tipo CarroDao. Lembra que com a anotação @Repository avisamos ao Spring que CarroDao é um repositório? Ao fazer isso, o Spring passará a gerenciar o ciclo de vida desse elemento, o qual também passará a ser visto como um bean. Então, ao anotar o atributo carroDao com @Autowired, o Spring fará a injeção de dependência desse objeto, o deixando pronto para quando precisarmos dele.
+
+Por fim, temos o método listarCarros(). Assim como fizemos com a classe CarroController, anotamos esse método com @RequestMapping. Nessa anotação, informamos o caminho que deve ser acessado para que esse método seja chamado. Neste caso, foi informado o valor “/listar”.
+
+Observe, também, o segundo parâmetro dessa anotação: method = RequestMethod.GET. Dessa forma estamos informando que quando o usuário realizar uma requisição do tipo GET para localhost:8080/spring-mvc/carros/listar, esse é o método que deve ser executado. É utilizando essas informações presentes na URL que o Dispatcher Servlet identificará o controller e o controller saberá qual método deve ser executado.
+
+Agora, repare que esse método retorna um objeto do tipo ModelAndView e recebe como parâmetro um objeto do tipo ModelMap. Ambos são recursos fornecidos pelo Spring e nos permitem abstrair, isto é, encapsular, alguns detalhes sobre como devemos enviar informações para a página a ser exibida como resposta à requisição.
+
+Note que nesse momento já temos o código que realiza o mapeamento de uma requisição a um método no controller. Note, também, que já temos um objeto dao injetado pelo Spring para que nosso controller possa se comunicar com o Model. Agora, precisamos solicitar ao Model que execute o método responsável por nos devolver a lista de carros e preparar o retorno desses dados para a nossa View. É exatamente isso que fazemos nas duas linhas do método listarCarros().
+
+
+
+
+
+
+
+
+
+
+
