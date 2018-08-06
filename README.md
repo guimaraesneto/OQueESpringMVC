@@ -282,8 +282,83 @@ Agora, repare que esse método retorna um objeto do tipo ModelAndView e recebe c
 
 Note que nesse momento já temos o código que realiza o mapeamento de uma requisição a um método no controller. Note, também, que já temos um objeto dao injetado pelo Spring para que nosso controller possa se comunicar com o Model. Agora, precisamos solicitar ao Model que execute o método responsável por nos devolver a lista de carros e preparar o retorno desses dados para a nossa View. É exatamente isso que fazemos nas duas linhas do método listarCarros().
 
+# 4. Executando o projeto Spring MVC
 
+Para finalizar esse estudo, analisaremos os artefatos que fazem parte da camada de visão da aplicação, assim como demonstraremos o projeto em execução, explicitando, mais uma vez, o funcionamento do Spring MVC ao receber uma requisição.
 
+# Método listarCarros()
+Voltando nossos estudos ao código do método listarCarros(), apresentado abaixo, ao declarar um parâmetro do tipo ModelMap, o Spring já nos entrega um objeto desse tipo instanciado. Ele não é nada mais do que a implementação de um map feita pelo Spring para que possamos enviar dados do modelo para a view. Então, o que fazemos é chamar o método addAttribute() para incluir nesse map o atributo que desejamos enviar para a view. Neste código, nomeamos esse atributo como “carros”, e no segundo parâmetro, passamos o valor desse atributo, que será, exatamente, a lista de carros obtida a partir do DAO.
+
+```java
+@RequestMapping(value = "/listar", method = RequestMethod.GET)
+public ModelAndView listarCarros(ModelMap model) {
+   model.addAttribute("carros", dao.getCarros());
+   return new ModelAndView("/carro/list", model);
+}
+```
+Quanto ao retorno desse método, instanciamos um objeto do tipo ModelAndView e passamos por parâmetro a String que representa o caminho para a página JSP a ser exibida e o objeto model, que contém o atributo a ser apresentado nessa página. Aqui, lembre-se que as páginas devem ser criadas dentro da pasta WEB-INF/views e ter o sufixo .jsp, como especificamos no arquivo spring-context.xml.
+
+A partir do retorno desse ModelAndView, o Front Controller repassará essas informações para a view, que processará a página list.jsp com os dados enviados e renderizará o HTML, o devolvendo para o Front Controller enviar a resposta para o browser, sendo todo esse processo executado, por debaixo dos panos, pelo Spring MVC.
+
+Para concluir, vejamos o código das páginas que compõem a nossa View, a começar pela página index.jsp, apresentada a seguir:
+
+```html
+<html>
+   <head>
+       <title>O que é Spring MVC</title>
+   </head>
+   <body>
+       <h1>O que é Spring MVC</h1>
+       <h3>Exemplo: Listagem de carros: 
+        <a href="/spring-mvc/carros/listar">link</a></h3>
+   </body>
+</html>
+```
+Como podemos notar, ela foi criada dentro da pasta webapp e apenas representa a página inicial. Seu código é bastante simples, contendo um título e um corpo com um link para a página responsável pela listagem dos carros.
+
+Neste link, note que não especificamos o caminho físico para o arquivo list.jsp, mas sim o caminho definido em CarroController. Observe que informamos /carros/listar. Exatamente o caminho definido nas anotações @RequestMapping declaradas sobre a classe CarroController e sobre o método listarCarros().
+
+Agora, vejamos o código da página list.jsp, apresentada a seguir:
+
+```jsp
+<%@ page language="java" contentType="text/html; 
+  charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<!DOCTYPE html>
+<html>
+   <head>
+       <title>O que é Spring MVC</title>
+   </head>
+   <body>
+       <h1>Listagem de carros</h1>
+       <table>
+           <thead>
+               <tr>
+                   <th>Modelo</th>
+                   <th>Marca</th>
+                   <th>Ano</th>
+               </tr>
+           </thead>
+           <tbody>
+               <c:forEach var="carro" items="${carros}">
+                   <tr>
+                       <td>${carro.modelo}</td>
+                       <td>${carro.marca}</td>
+                       <td>${carro.ano}</td>
+                   </tr>
+               </c:forEach>
+           </tbody>
+       </table>
+   </body>
+</html>
+```
+Como já informado, ela foi criada no diretório /views/carro. Visando uma melhor organização, é uma boa prática, na pasta views, ter um diretório para armazenar as páginas referentes a cada Controller. Assim, como em nosso projeto temos um controller de nome CarroController, dentro da pasta views é indicado criar uma pasta de nome carro e, dentro dela, as views relacionadas a esse Controller.
+
+Analisando o código dessa página, declaramos uma tabela que será populada com um forEach. Cada linha dessa tabela exibirá os três atributos que representam um carro: modelo, marca e ano. Agora, como é que os dados chegam ao atributo carros, para que o forEach seja executado? Na classe CarroController, lembra do atributo de nome carros que adicionamos ao ModelMap? Pois bem, analisando novamente a página JSP, note que o nome da variável a ser percorrida pelo forEach é exatamente o mesmo (“carros”). É dessa forma que é feita essa ligação.
+
+Ao executar a aplicação e acessá-la no browser pelo endereço localhost:8080/spring-mvc, você notará que a página index.jsp é exibida. Então, clique no link presente nessa página. Ao fazer isso, enviaremos uma requisição para spring-mvc/carros/listar.
+
+A partir dele, pelo path /carros, o Front Controller identificará que o Controller adequado para tratar essa requisição é CarroController. Esse, por sua vez, a partir do path /listar, saberá que o método adequado é o listarCarros(). Nesse método, o controller solicitará à camada Model os dados e preparará um objeto do tipo ModelAndView contendo as informações referentes aos dados que precisam ser apresentados e à página a ser utilizada para construir a view. Essa informação é, então, recebida pelo Front Controller, que a repassa para a View. A View, então, identifica o JSP desejado e gera o HTML com a lista de carros, enviando para o Front Controller a página, e este, finalizando o atendimento à requisição, devolve o HTML como resposta. Ao final, a página com a listagem dos carros é exibida.
 
 
 
